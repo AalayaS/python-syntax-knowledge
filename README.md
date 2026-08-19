@@ -1,4 +1,4 @@
- HEAD
+
 # Python Syntax Knowledge Graph
 
 A knowledge-based reasoning system for analyzing proposed Python syntax
@@ -95,6 +95,4 @@ PEP 572: PEP 572 – Assignment Expressions
 Feature: Assignment Expressions
 Relevance score: 1.0
 Match type: DIRECT
-
-# python-syntax-knowledge
-origin/main
+```
