@@ -1,0 +1,1002 @@
+{
+  "schema_version": "0.2",
+  "entities": [
+    {
+      "id": "pep_572",
+      "type": "PEP",
+      "number": 572,
+      "title": "PEP 572 – Assignment Expressions"
+    },
+    {
+      "id": "pep_572_example_1",
+      "type": "Example",
+      "name": "Examples from the Python standard library",
+      "description": "site.py env_base is only used on these lines, putting its assignment on the if moves it as the “header” of the block. Current: env_base = os . environ . get ( \"PYTHONUSERBASE\" , None ) if env_base : return env_base Improved: if env_base := os . environ . get ( \"PYTHONUSERBASE\" , None ): return env_base\n_pydecimal.py Avoid nested if and remove one indentation level. Current: if self . _is_special : ans = self . _check_nans ( context = context ) if ans : return ans Improved: if self . _is_special and ( ans := self . _check_nans ( context = context )): return ans\ncopy.py Code looks more regular and avoid multiple nested if. (See Appendix A for the origin of this example.) Current: reductor = dispatch_table . get ( cls ) if reductor : rv = reductor ( x ) else : reductor = getattr ( x , \"__reduce_ex__\" , None ) if reductor : rv = reductor ( 4 ) else : reductor = getattr ( x , \"__reduce__\" , None ) if reductor : rv = reductor () else : raise Error ( \"un(deep)copyable object of type %s \" % cls ) Improved: if reductor := dispatch_table . get ( cls ): rv = reductor ( x ) elif reductor := getattr ( x , \"__reduce_ex__\" , None ): rv = reductor ( 4 ) elif reductor := getattr ( x , \"__reduce__\" , None ): rv = reductor () else : raise Error ( \"un(deep)copyable object of type %s \" % cls )\ndatetime.py tz is only used for s += tz , moving its assignment inside the if helps to show its scope. Current: s = _format_time ( self . _hour , self . _minute , self . _second , self . _microsecond , timespec ) tz = self . _tzstr () if tz : s += tz return s Improved: s = _format_time ( self . _hour , self . _minute , self . _second , self . _microsecond , timespec ) if tz := self . _tzstr (): s += tz return s\nsysconfig.py Calling fp.readline() in the while condition and calling .match() on the if lines make the code more compact without making it harder to understand. Current: while True : line = fp . readline () if not line : break m = define_rx . match ( line ) if m : n , v = m . group ( 1 , 2 ) try : v = int ( v ) except ValueError : pass vars [ n ] = v else : m = undef_rx . match ( line ) if m : vars [ m . group ( 1 )] = 0 Improved: while line := fp . readline (): if m := define_rx . match ( line ): n , v = m . group ( 1 , 2 ) try : v = int ( v ) except ValueError : pass vars [ n ] = v elif m := undef_rx . match ( line ): vars [ m . group ( 1 )] = 0",
+      "source_pep": 572,
+      "source_section": "Examples from the Python standard library"
+    },
+    {
+      "id": "pep_572_example_2",
+      "type": "Example",
+      "name": "Simplifying list comprehensions",
+      "description": "A list comprehension can map and filter efficiently by capturing the condition:\nresults = [( x , y , x / y ) for x in input_data if ( y := f ( x )) > 0 ]\nSimilarly, a subexpression can be reused within the main expression, by giving it a name on first use:\nstuff = [[ y := f ( x ), x / y ] for x in range ( 5 )]\nNote that in both cases the variable y is bound in the containing scope (i.e. at the same level as results or stuff ).",
+      "source_pep": 572,
+      "source_section": "Simplifying list comprehensions"
+    },
+    {
+      "id": "pep_572_example_3",
+      "type": "Example",
+      "name": "Capturing condition values",
+      "description": "Assignment expressions can be used to good effect in the header of an if or while statement:\n# Loop-and-a-half while ( command := input ( \"> \" )) != \"quit\" : print ( \"You entered:\" , command ) # Capturing regular expression match objects # See, for instance, Lib/pydoc.py, which uses a multiline spelling # of this effect if match := re . search ( pat , text ): print ( \"Found:\" , match . group ( 0 )) # The same syntax chains nicely into 'elif' statements, unlike the # equivalent using assignment statements. elif match := re . search ( otherpat , text ): print ( \"Alternate found:\" , match . group ( 0 )) elif match := re . search ( third , text ): print ( \"Fallback found:\" , match . group ( 0 )) # Reading socket data until an empty string is returned while data := sock . recv ( 8192 ): print ( \"Received data:\" , data )\nParticularly with the while loop, this can remove the need to have an infinite loop, an assignment, and a condition. It also creates a smooth parallel between a loop which simply uses a function call as its condition, and one which uses that as its condition but also uses the actual value.",
+      "source_pep": 572,
+      "source_section": "Capturing condition values"
+    },
+    {
+      "id": "pep_572_example_4",
+      "type": "Example",
+      "name": "Fork",
+      "description": "An example from the low-level UNIX world:\nif pid := os . fork (): # Parent code else : # Child code",
+      "source_pep": 572,
+      "source_section": "Fork"
+    },
+    {
+      "id": "pep_572_alternative_1",
+      "type": "Alternative",
+      "name": "Changing the scope rules for comprehensions",
+      "description": "A previous version of this PEP proposed subtle changes to the scope rules for comprehensions, to make them more usable in class scope and to unify the scope of the “outermost iterable” and the rest of the comprehension. However, this part of the proposal would have caused backwards incompatibilities, and has been withdrawn so the PEP can focus on assignment expressions.",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Changing the scope rules for comprehensions"
+    },
+    {
+      "id": "pep_572_alternative_2",
+      "type": "Alternative",
+      "name": "Alternative spellings",
+      "description": "Broadly the same semantics as the current proposal, but spelled differently.\nEXPR as NAME : stuff = [[ f ( x ) as y , x / y ] for x in range ( 5 )] Since EXPR as NAME already has meaning in import , except and with statements (with different semantics), this would create unnecessary confusion or require special-casing (e.g. to forbid assignment within the headers of these statements). (Note that with EXPR as VAR does not simply assign the value of EXPR to VAR – it calls EXPR.__enter__() and assigns the result of that to VAR .) Additional reasons to prefer := over this spelling include: In if f(x) as y the assignment target doesn’t jump out at you – it just reads like if f x blah blah and it is too similar visually to if f(x) and y . In all other situations where an as clause is allowed, even readers with intermediary skills are led to anticipate that clause (however optional) by the keyword that starts the line, and the grammar ties that keyword closely to the as clause: import foo as bar except Exc as var with ctxmgr() as var To the contrary, the assignment expression does not belong to the if or while that starts the line, and we intentionally allow assignment expressions in other contexts as well. The parallel cadence between NAME = EXPR if NAME := EXPR reinforces the visual recognition of assignment expressions. EXPR -> NAME : stuff = [[ f ( x ) -> y , x / y ] for x in range ( 5 )] This syntax is inspired by languages such as R and Haskell, and some programmable calculators. (Note that a left-facing arrow y <- f(x) is not possible in Python, as it would be interpreted as less-than and unary minus.) This syntax has a slight advantage over ‘as’ in that it does not conflict with with , except and import , but otherwise is equivalent. But it is entirely unrelated to Python’s other use of -> (function return type annotations), and compared to := (which dates back to Algol-58) it has a much weaker tradition. Adorning statement-local names with a leading dot: stuff = [[( f ( x ) as . y ), x /. y ] for x in range ( 5 )] # with \"as\" stuff = [[( . y := f ( x )), x /. y ] for x in range ( 5 )] # with \":=\" This has the advantage that leaked usage can be readily detected, removing some forms of syntactic ambiguity. However, this would be the only place in Python where a variable’s scope is encoded into its name, making refactoring harder. Adding a where: to any statement to create local name bindings: value = x ** 2 + 2 * x where : x = spam ( 1 , 4 , 7 , q ) Execution order is inverted (the indented body is performed first, followed by the “header”). This requires a new keyword, unless an existing keyword is repurposed (most likely with: ). See PEP 3150 for prior discussion on this subject (with the proposed keyword being given: ). TARGET from EXPR : stuff = [[ y from f ( x ), x / y ] for x in range ( 5 )] This syntax has fewer conflicts than as does (conflicting only with the raise Exc from Exc notation), but is otherwise comparable to it. Instead of paralleling with expr as target: (which can be useful but can also be confusing), this has no parallels, but is evocative.",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Alternative spellings"
+    },
+    {
+      "id": "pep_572_alternative_3",
+      "type": "Alternative",
+      "name": "Special-casing conditional statements",
+      "description": "One of the most popular use-cases is if and while statements. Instead of a more general solution, this proposal enhances the syntax of these two statements to add a means of capturing the compared value:\nif re . search ( pat , text ) as match : print ( \"Found:\" , match . group ( 0 ))\nThis works beautifully if and ONLY if the desired condition is based on the truthiness of the captured value. It is thus effective for specific use-cases (regex matches, socket reads that return '' when done), and completely useless in more complicated cases (e.g. where the condition is f(x) < 0 and you want to capture the value of f(x) ). It also has no benefit to list comprehensions.\nAdvantages: No syntactic ambiguities. Disadvantages: Answers only a fraction of possible use-cases, even in if / while statements.",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Special-casing conditional statements"
+    },
+    {
+      "id": "pep_572_alternative_4",
+      "type": "Alternative",
+      "name": "Special-casing comprehensions",
+      "description": "Another common use-case is comprehensions (list/set/dict, and genexps). As above, proposals have been made for comprehension-specific solutions.\nwhere , let , or given : stuff = [( y , x / y ) where y = f ( x ) for x in range ( 5 )] stuff = [( y , x / y ) let y = f ( x ) for x in range ( 5 )] stuff = [( y , x / y ) given y = f ( x ) for x in range ( 5 )] This brings the subexpression to a location in between the ‘for’ loop and the expression. It introduces an additional language keyword, which creates conflicts. Of the three, where reads the most cleanly, but also has the greatest potential for conflict (e.g. SQLAlchemy and numpy have where methods, as does tkinter.dnd.Icon in the standard library). with NAME = EXPR : stuff = [( y , x / y ) with y = f ( x ) for x in range ( 5 )] As above, but reusing the with keyword. Doesn’t read too badly, and needs no additional language keyword. Is restricted to comprehensions, though, and cannot as easily be transformed into “longhand” for-loop syntax. Has the C problem that an equals sign in an expression can now create a name binding, rather than performing a comparison. Would raise the question of why “with NAME = EXPR:” cannot be used as a statement on its own. with EXPR as NAME : stuff = [( y , x / y ) with f ( x ) as y for x in range ( 5 )] As per option 2, but using as rather than an equals sign. Aligns syntactically with other uses of as for name binding, but a simple transformation to for-loop longhand would create drastically different semantics; the meaning of with inside a comprehension would be completely different from the meaning as a stand-alone statement, while retaining identical syntax.\nRegardless of the spelling chosen, this introduces a stark difference between comprehensions and the equivalent unrolled long-hand form of the loop. It is no longer possible to unwrap the loop into statement form without reworking any name bindings. The only keyword that can be repurposed to this task is with , thus giving it sneakily different semantics in a comprehension than in a statement; alternatively, a new keyword is needed, with all the costs therein.",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Special-casing comprehensions"
+    },
+    {
+      "id": "pep_572_alternative_5",
+      "type": "Alternative",
+      "name": "Lowering operator precedence",
+      "description": "There are two logical precedences for the := operator. Either it should bind as loosely as possible, as does statement-assignment; or it should bind more tightly than comparison operators. Placing its precedence between the comparison and arithmetic operators (to be precise: just lower than bitwise OR) allows most uses inside while and if conditions to be spelled without parentheses, as it is most likely that you wish to capture the value of something, then perform a comparison on it:\npos = - 1 while pos := buffer . find ( search_term , pos + 1 ) >= 0 : ...\nOnce find() returns -1, the loop terminates. If := binds as loosely as = does, this would capture the result of the comparison (generally either True or False ), which is less useful.\nWhile this behaviour would be convenient in many situations, it is also harder to explain than “the := operator behaves just like the assignment statement”, and as such, the precedence for := has been made as close as possible to that of = (with the exception that it binds tighter than comma).",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Lowering operator precedence"
+    },
+    {
+      "id": "pep_572_alternative_6",
+      "type": "Alternative",
+      "name": "Allowing commas to the right",
+      "description": "Some critics have claimed that the assignment expressions should allow unparenthesized tuples on the right, so that these two would be equivalent:\n( point := ( x , y )) ( point := x , y )\n(With the current version of the proposal, the latter would be equivalent to ((point := x), y) .)\nHowever, adopting this stance would logically lead to the conclusion that when used in a function call, assignment expressions also bind less tight than comma, so we’d have the following confusing equivalence:\nfoo ( x := 1 , y ) foo ( x := ( 1 , y ))\nThe less confusing option is to make := bind more tightly than comma.",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Allowing commas to the right"
+    },
+    {
+      "id": "pep_572_alternative_7",
+      "type": "Alternative",
+      "name": "Always requiring parentheses",
+      "description": "It’s been proposed to just always require parentheses around an assignment expression. This would resolve many ambiguities, and indeed parentheses will frequently be needed to extract the desired subexpression. But in the following cases the extra parentheses feel redundant:\n# Top level in if if match := pattern . match ( line ): return match . group ( 1 ) # Short call len ( lines := f . readlines ())",
+      "status": "rejected",
+      "source_pep": 572,
+      "source_section": "Always requiring parentheses"
+    },
+    {
+      "id": "pep_572_objection_1",
+      "type": "Objection",
+      "name": "Why not just turn existing assignment into an expression?",
+      "description": "C and its derivatives define the = operator as an expression, rather than a statement as is Python’s way. This allows assignments in more contexts, including contexts where comparisons are more common. The syntactic similarity between if (x == y) and if (x = y) belies their drastically different semantics. Thus this proposal uses := to clarify the distinction.",
+      "source_pep": 572,
+      "source_section": "Why not just turn existing assignment into an expression?"
+    },
+    {
+      "id": "pep_572_objection_2",
+      "type": "Objection",
+      "name": "With assignment expressions, why bother with assignment statements?",
+      "description": "The two forms have different flexibilities. The := operator can be used inside a larger expression; the = statement can be augmented to += and its friends, can be chained, and can assign to attributes and subscripts.",
+      "source_pep": 572,
+      "source_section": "With assignment expressions, why bother with assignment statements?"
+    },
+    {
+      "id": "pep_572_objection_3",
+      "type": "Objection",
+      "name": "Why not use a sublocal scope and prevent namespace pollution?",
+      "description": "Previous revisions of this proposal involved sublocal scope (restricted to a single statement), preventing name leakage and namespace pollution. While a definite advantage in a number of situations, this increases complexity in many others, and the costs are not justified by the benefits. In the interests of language simplicity, the name bindings created here are exactly equivalent to any other name bindings, including that usage at class or module scope will create externally-visible names. This is no different from for loops or other constructs, and can be solved the same way: del the name once it is no longer needed, or prefix it with an underscore.\n(The author wishes to thank Guido van Rossum and Christoph Groth for their suggestions to move the proposal in this direction. [2] )",
+      "source_pep": 572,
+      "source_section": "Why not use a sublocal scope and prevent namespace pollution?"
+    },
+    {
+      "id": "pep_572_example_5",
+      "type": "Example",
+      "name": "A numeric example",
+      "description": "I have another example that quite impressed me at the time.\nWhere all variables are positive integers, and a is at least as large as the n’th root of x, this algorithm returns the floor of the n’th root of x (and roughly doubling the number of accurate bits per iteration):\nwhile a > ( d := x // a ** ( n - 1 )): a = (( n - 1 ) * a + d ) // n return a\nIt’s not obvious why that works, but is no more obvious in the “loop and a half” form. It’s hard to prove correctness without building on the right insight (the “arithmetic mean - geometric mean inequality”), and knowing some non-trivial things about how nested floor functions behave. That is, the challenges are in the math, not really in the coding.\nIf you do know all that, then the assignment-expression form is easily read as “while the current guess is too large, get a smaller guess”, where the “too large?” test and the new guess share an expensive sub-expression.\nTo my eyes, the original form is harder to understand:\nwhile True : d = x // a ** ( n - 1 ) if a <= d : break a = (( n - 1 ) * a + d ) // n return a",
+      "source_pep": 572,
+      "source_section": "A numeric example"
+    },
+    {
+      "id": "pep_572_feature",
+      "type": "Feature",
+      "name": "Assignment Expressions",
+      "concepts": [
+        "assignment",
+        "expression",
+        "variable binding",
+        "assignment expression",
+        "named expression",
+        "walrus operator"
+      ],
+      "source_pep": 572
+    },
+    {
+      "id": "pep_622",
+      "type": "PEP",
+      "number": 622,
+      "title": "PEP 622 – Structural Pattern Matching"
+    },
+    {
+      "id": "pep_622_alternative_1",
+      "type": "Alternative",
+      "name": "Don’t do this, pattern matching is hard to learn",
+      "description": "In our opinion, the proposed pattern matching is not more difficult than adding isinstance() and getattr() to iterable unpacking. Also, we believe the proposed syntax significantly improves readability for a wide range of code patterns, by allowing to express what one wants to do, rather than how to do it. We hope the few real code snippets we included in the PEP above illustrate this comparison well enough. For more real code examples and their translations see Ref. [1] .",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Don’t do this, pattern matching is hard to learn"
+    },
+    {
+      "id": "pep_622_alternative_2",
+      "type": "Alternative",
+      "name": "Don’t do this, use existing method dispatching mechanisms",
+      "description": "We recognize that some of the use cases for the match statement overlap with what can be done with traditional object-oriented programming (OOP) design techniques using class inheritance. The ability to choose alternate behaviors based on testing the runtime type of a match subject might even seem heretical to strict OOP purists.\nHowever, Python has always been a language that embraces a variety of programming styles and paradigms. Classic Python design idioms such as “duck”-typing go beyond the traditional OOP model.\nWe believe that there are important use cases where the use of match results in a cleaner and more maintainable architecture. These use cases tend to be characterized by a number of features:\nAlgorithms which cut across traditional lines of data encapsulation. If an algorithm is processing heterogeneous elements of different types (such as evaluating or transforming an abstract syntax tree, or doing algebraic manipulation of mathematical symbols), forcing the user to implement the algorithm as individual methods on each element type results in logic that is smeared across the entire codebase instead of being neatly localized in one place. Program architectures where the set of possible data types is relatively stable, but there is an ever-expanding set of operations to be performed on those data types. Doing this in a strict OOP fashion requires constantly adding new methods to both the base class and subclasses to support the new methods, “polluting” the base class with lots of very specialized method definitions, and causing widespread disruption and churn in the code. By contrast, in a match -based dispatch, adding a new behavior merely involves writing a new match statement. OOP also does not handle dispatching based on the shape of an object, such as the length of a tuple, or the presence of an attribute – instead any such dispatching decision must be encoded into the object’s type. Shape-based dispatching is particularly interesting when it comes to handling “duck”-typed objects.\nWhere OOP is clearly superior is in the opposite case: where the set of possible operations is relatively stable and well-defined, but there is an ever-growing set of data types to operate on. A classic example of this is UI widget toolkits, where there is a fixed set of interaction types (repaint, mouse click, keypress, and so on), but the set of widget types is constantly expanding as developers invent new and creative user interaction styles. Adding a new kind of widget is a simple matter of writing a new subclass, whereas with a match-based approach you end up having to add a new case clause to many widespread match statements. We therefore don’t recommend using match in such a situation.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Don’t do this, use existing method dispatching mechanisms"
+    },
+    {
+      "id": "pep_622_alternative_3",
+      "type": "Alternative",
+      "name": "Allow more flexible assignment targets instead",
+      "description": "There was an idea to instead just generalize the iterable unpacking to much more general assignment targets, instead of adding a new kind of statement. This concept is known in some other languages as “irrefutable matches”. We decided not to do this because inspection of real-life potential use cases showed that in vast majority of cases destructuring is related to an if condition. Also many of those are grouped in a series of exclusive choices.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Allow more flexible assignment targets instead"
+    },
+    {
+      "id": "pep_622_alternative_4",
+      "type": "Alternative",
+      "name": "Make it an expression",
+      "description": "In most other languages pattern matching is represented by an expression, not statement. But making it an expression would be inconsistent with other syntactic choices in Python. All decision making logic is expressed almost exclusively in statements, so we decided to not deviate from this.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Make it an expression"
+    },
+    {
+      "id": "pep_622_alternative_5",
+      "type": "Alternative",
+      "name": "Use a hard keyword",
+      "description": "There were options to make match a hard keyword, or choose a different keyword. Although using a hard keyword would simplify life for simple-minded syntax highlighters, we decided not to use hard keyword for several reasons:\nMost importantly, the new parser doesn’t require us to do this. Unlike with async that caused hardships with being a soft keyword for few releases, here we can make match a permanent soft keyword. match is so commonly used in existing code, that it would break almost every existing program and will put a burden to fix code on many people who may not even benefit from the new syntax. It is hard to find an alternative keyword that would not be commonly used in existing programs as an identifier, and would still clearly reflect the meaning of the statement.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use a hard keyword"
+    },
+    {
+      "id": "pep_622_alternative_6",
+      "type": "Alternative",
+      "name": "Use as or | instead of case for case clauses",
+      "description": "The pattern matching proposed here is a combination of multi-branch control flow (in line with switch in Algol-derived languages or cond in Lisp) and object-deconstruction as found in functional languages. While the proposed keyword case highlights the multi-branch aspect, alternative keywords such as as would equally be possible, highlighting the deconstruction aspect. as or with , for instance, also have the advantage of already being keywords in Python. However, since case as a keyword can only occur as a leading keyword inside a match statement, it is easy for a parser to distinguish between its use as a keyword or as a variable.\nOther variants would use a symbol like | or => , or go entirely without special marker.\nSince Python is a statement-oriented language in the tradition of Algol, and as each composite statement starts with an identifying keyword, case seemed to be most in line with Python’s style and traditions.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use as or | instead of case for case clauses"
+    },
+    {
+      "id": "pep_622_alternative_7",
+      "type": "Alternative",
+      "name": "Use a flat indentation scheme",
+      "description": "There was an idea to use an alternative indentation scheme, for example where every case clause would not be indented with respect to the initial match part:\nmatch expression : case pattern_1 : ... case pattern_2 : ...\nThe motivation is that although flat indentation saves some horizontal space, it may look awkward to an eye of a Python programmer, because everywhere else colon is followed by an indent. This will also complicate life for simple-minded code editors. Finally, the horizontal space issue can be alleviated by allowing “half-indent” (i.e. two spaces instead of four) for match statements.\nIn sample programs using match , written as part of the development of this PEP, a noticeable improvement in code brevity is observed, more than making up for the additional indentation level.\nAnother proposal considered was to use flat indentation but put the expression on the line after match: , like this:\nmatch : expression case pattern_1 : ... case pattern_2 : ...\nThis was ultimately rejected because the first block would be a novelty in Python’s grammar: a block whose only content is a single expression rather than a sequence of statements.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use a flat indentation scheme"
+    },
+    {
+      "id": "pep_622_alternative_8",
+      "type": "Alternative",
+      "name": "Alternatives for constant value pattern",
+      "description": "This is probably the trickiest item. Matching against some pre-defined constants is very common, but the dynamic nature of Python also makes it ambiguous with capture patterns. Five other alternatives were considered:\nUse some implicit rules. For example, if a name was defined in the global scope, then it refers to a constant, rather than representing a capture pattern: # Here, the name \"spam\" must be defined in the global scope (and # not shadowed locally). \"side\" must be local. match entree [ - 1 ]: case spam : ... # Compares entree[-1] == spam. case side : ... # Assigns side = entree[-1]. This however can cause surprises and action at a distance if someone defines an unrelated coinciding name before the match statement. Use a rule based on the case of a name. In particular, if the name starts with a lowercase letter it would be a capture pattern, while if it starts with uppercase it would refer to a constant: match entree [ - 1 ]: case SPAM : ... # Compares entree[-1] == SPAM. case side : ... # Assigns side = entree[-1]. This works well with the recommendations for naming constants from PEP 8 . The main objection is that there’s no other part of core Python where the case of a name is semantically significant. In addition, Python allows identifiers to use different scripts, many of which (e.g. CJK) don’t have a case distinction. Use extra parentheses to indicate lookup semantics for a given name. For example: match entree [ - 1 ]: case ( spam ): ... # Compares entree[-1] == spam. case side : ... # Assigns side = entree[-1]. This may be a viable option, but it can create some visual noise if used often. Also honestly it looks pretty unusual, especially in nested contexts. This also has the problem that we may want or need parentheses to disambiguate grouping in patterns, e.g. in Point(x, y=(y := complex())) . Introduce a special symbol, for example . , ? , $ , or ^ to indicate that a given name is a value to be matched against, not to be assigned to. An earlier version of this proposal used a leading-dot rule: match entree [ - 1 ]: case . spam : ... # Compares entree[-1] == spam. case side : ... # Assigns side = entree[-1]. While potentially useful, it introduces strange-looking new syntax without making the pattern syntax any more expressive. Indeed, named constants can be made to work with the existing rules by converting them to Enum types, or enclosing them in their own namespace (considered by the authors to be one honking great idea): match entree [ - 1 ]: case Sides . SPAM : ... # Compares entree[-1] == Sides.SPAM. case side : ... # Assigns side = entree[-1]. If needed, the leading-dot rule (or a similar variant) could be added back later with no backward-compatibility issues. There was also an idea to make lookup semantics the default, and require $ or ? to be used in capture patterns: match entree[-1]: case spam: ... # Compares entree[-1] == spam. case side?: ... # Assigns side = entree[-1]. There are a few issues with this: Capture patterns are more common in typical code, so it is undesirable to require special syntax for them. The authors are not aware of any other language that adorns captures in this way. None of the proposed syntaxes have any precedent in Python; no other place in Python that binds names (e.g. import , def , for ) uses special marker syntax. It would break the syntactic parallels of the current grammar: match coords: case ($x, $y): return Point(x, y) # Why not \"Point($x, $y)\"?\nIn the end, these alternatives were rejected because of the mentioned drawbacks.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Alternatives for constant value pattern"
+    },
+    {
+      "id": "pep_622_alternative_9",
+      "type": "Alternative",
+      "name": "Disallow float literals in patterns",
+      "description": "Because of the inexactness of floats, an early version of this proposal did not allow floating-point constants to be used as match patterns. Part of the justification for this prohibition is that Rust does this.\nHowever, during implementation, it was discovered that distinguishing between float values and other types required extra code in the VM that would slow matches generally. Given that Python and Rust are very different languages with different user bases and underlying philosophies, it was felt that allowing float literals would not cause too much harm, and would be less surprising to users.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Disallow float literals in patterns"
+    },
+    {
+      "id": "pep_622_alternative_10",
+      "type": "Alternative",
+      "name": "Range matching patterns",
+      "description": "This would allow patterns such as 1...6 . However, there are a host of ambiguities:\nIs the range open, half-open, or closed? (I.e. is 6 included in the above example or not?) Does the range match a single number, or a range object? Range matching is often used for character ranges (‘a’…’z’) but that won’t work in Python since there’s no character data type, just strings. Range matching can be a significant performance optimization if you can pre-build a jump table, but that’s not generally possible in Python due to the fact that names can be dynamically rebound.\nRather than creating a special-case syntax for ranges, it was decided that allowing custom pattern objects ( InRange(0, 6) ) would be more flexible and less ambiguous; however those ideas have been postponed for the time being (See deferred ideas ).",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Range matching patterns"
+    },
+    {
+      "id": "pep_622_alternative_11",
+      "type": "Alternative",
+      "name": "Use dispatch dict semantics for matches",
+      "description": "Implementations for classic switch statement sometimes use a pre-computed hash table instead of a chained equality comparisons to gain some performance. In the context of match statement this is technically also possible for matches against literal patterns. However, having subtly different semantics for different kinds of patterns would be too surprising for potentially modest performance win.\nWe can still experiment with possible performance optimizations in this direction if they will not cause semantic differences.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use dispatch dict semantics for matches"
+    },
+    {
+      "id": "pep_622_alternative_12",
+      "type": "Alternative",
+      "name": "Use continue and break in case clauses.",
+      "description": "Another rejected proposal was to define new meanings for continue and break inside of match , which would have the following behavior:\ncontinue would exit the current case clause and continue matching at the next case clause. break would exit the match statement.\nHowever, there is a serious drawback to this proposal: if the match statement is nested inside of a loop, the meanings of continue and break are now changed. This may cause unexpected behavior during refactorings; also, an argument can be made that there are other means to get the same behavior (such as using guard conditions), and that in practice it’s likely that the existing behavior of continue and break are far more useful.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use continue and break in case clauses."
+    },
+    {
+      "id": "pep_622_alternative_13",
+      "type": "Alternative",
+      "name": "AND ( & ) patterns",
+      "description": "This proposal defines an OR-pattern ( | ) to match one of several alternates; why not also an AND-pattern ( & )? Especially given that some other languages (F# for example) support this.\nHowever, it’s not clear how useful this would be. The semantics for matching dictionaries, objects and sequences already incorporates an implicit ‘and’: all attributes and elements mentioned must be present for the match to succeed. Guard conditions can also support many of the use cases that a hypothetical ‘and’ operator would be used for.\nIn the end, it was decided that this would make the syntax more complex without adding a significant benefit.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "AND ( & ) patterns"
+    },
+    {
+      "id": "pep_622_alternative_14",
+      "type": "Alternative",
+      "name": "Negative match patterns",
+      "description": "A negation of a match pattern using the operator ! as a prefix would match exactly if the pattern itself does not match. For instance, !(3 | 4) would match anything except 3 or 4 .\nThis was rejected because there is documented evidence that this feature is rarely useful (in languages which support it) or used as double negation !! to control variable scopes and prevent variable bindings (which does not apply to Python). It can also be simulated using guard conditions.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Negative match patterns"
+    },
+    {
+      "id": "pep_622_alternative_15",
+      "type": "Alternative",
+      "name": "Check exhaustiveness at runtime",
+      "description": "The question is what to do if no case clause has a matching pattern, and there is no default case. An earlier version of the proposal specified that the behavior in this case would be to throw an exception rather than silently falling through.\nThe arguments back and forth were many, but in the end the EIBTI (Explicit Is Better Than Implicit) argument won out: it’s better to have the programmer explicitly throw an exception if that is the behavior they want.\nFor cases such as sealed classes and enums, where the patterns are all known to be members of a discrete set, static checkers can warn about missing patterns.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Check exhaustiveness at runtime"
+    },
+    {
+      "id": "pep_622_alternative_16",
+      "type": "Alternative",
+      "name": "Type annotations for pattern variables",
+      "description": "The proposal was to combine patterns with type annotations:\nmatch x : case [ a : int , b : str ]: print ( f \"An int { a } and a string { b } :) case [ a : int , b : int , c : int ]: print ( f \"Three ints\" , a , b , c ) ...\nThis idea has a lot of problems. For one, the colon can only be used inside of brackets or parens, otherwise the syntax becomes ambiguous. And because Python disallows isinstance() checks on generic types, type annotations containing generics will not work as expected.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Type annotations for pattern variables"
+    },
+    {
+      "id": "pep_622_alternative_17",
+      "type": "Alternative",
+      "name": "Allow *rest in class patterns",
+      "description": "It was proposed to allow *rest in a class pattern, giving a variable to be bound to all positional arguments at once (similar to its use in unpacking assignments). It would provide some symmetry with sequence patterns. But it might be confused with a feature to provide the values for all positional arguments at once. And there seems to be no practical need for it, so it was scrapped. (It could easily be added at a later stage if a need arises.)",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Allow *rest in class patterns"
+    },
+    {
+      "id": "pep_622_alternative_18",
+      "type": "Alternative",
+      "name": "Disallow _.a in constant value patterns",
+      "description": "The first public draft said that the initial name in a constant value pattern must not be _ because _ has a special meaning in pattern matching, so this would be invalid:\ncase _ . a : ...\n(However, a._ would be legal and load the attribute with name _ of the object a as usual.)\nThere was some pushback against this on python-dev (some people have a legitimate use for _ as an important global variable, esp. in i18n) and the only reason for this prohibition was to prevent some user confusion. But it’s not the hill to die on.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Disallow _.a in constant value patterns"
+    },
+    {
+      "id": "pep_622_alternative_19",
+      "type": "Alternative",
+      "name": "Use some other token as wildcard",
+      "description": "It has been proposed to use ... (i.e., the ellipsis token) or * (star) as a wildcard. However, both these look as if an arbitrary number of items is omitted:\ncase [ a , ... , z ]: ... case [ a , * , z ]: ...\nBoth look like the would match a sequence of at two or more items, capturing the first and last values.\nIn addition, if * were to be used as the wildcard character, we would have to come up with some other way to capture the rest of a sequence, currently spelled like this:\ncase [ first , second , * rest ]: ...\nUsing an ellipsis would also be more confusing in documentation and examples, where ... is routinely used to indicate something obvious or irrelevant. (Yes, this would also be an argument against the other uses of ... in Python, but that water is already under the bridge.)\nAnother proposal was to use ? . This could be acceptable, although it would require modifying the tokenizer.\nAlso, _ is already used as a throwaway target in other contexts, and this use is pretty similar. This example is from difflib.py in the stdlib:\nfor tag , _ , _ , j1 , j2 in group : ...\nPerhaps the most convincing argument is that _ is used as the wildcard in every other language we’ve looked at supporting pattern matching: C#, Elixir, Erlang, F#, Haskell, Mathematica, OCaml, Ruby, Rust, Scala, and Swift. Now, in general, we should not be concerned too much with what another language does, since Python is clearly different from all these languages. However, if there is such an overwhelming and strong consensus, Python should not go out of its way to do something completely different – particularly given that _ works well in Python and is already in use as a throwaway target.\nNote that _ is not assigned to by patterns – this avoids conflicts with the use of _ as a marker for translatable strings and an alias for gettext.gettext , as recommended by the gettext module documentation.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use some other token as wildcard"
+    },
+    {
+      "id": "pep_622_alternative_20",
+      "type": "Alternative",
+      "name": "Use some other syntax instead of | for OR patterns",
+      "description": "A few alternatives to using | to separate the alternatives in OR patterns have been proposed. Instead of:\ncase 401 | 403 | 404 : print ( \"Some HTTP error\" )\nthe following proposals have been fielded:\nUse a comma: case 401 , 403 , 404 : print ( \"Some HTTP error\" ) This looks too much like a tuple – we would have to find a different way to spell tuples, and the construct would have to be parenthesized inside the argument list of a class pattern. In general, commas already have many different meanings in Python, we shouldn’t add more. Allow stacked cases: case 401 : case 403 : case 404 : print ( \"Some HTTP error\" ) This is how this would be done in C, using its fall-through semantics for cases. However, we don’t want to mislead people into thinking that match / case uses fall-through semantics (which are a common source of bugs in C). Also, this would be a novel indentation pattern, which might make it harder to support in IDEs and such (it would break the simple rule “add an indentation level after a line ending in a colon”). Finally, this wouldn’t support OR patterns nested inside other patterns. Use case in followed by a comma-separated list: case in 401 , 403 , 404 : print ( \"Some HTTP error\" ) This wouldn’t work for OR patterns nested inside other patterns, like: case Point ( 0 | 1 , 0 | 1 ): print ( \"A corner of the unit square\" ) Use the or keyword: case 401 or 403 or 404 : print ( \"Some HTTP error\" ) This could work, and the readability is not too different from using | . Some users expressed a preference for or because they associate | with bitwise OR. However: Many other languages that have pattern matching use | (the list includes Elixir, Erlang, F#, Mathematica, OCaml, Ruby, Rust, and Scala). | is shorter, which may contribute to the readability of nested patterns like Point(0|1, 0|1) . Some people mistakenly believe that | has the wrong priority; but since patterns don’t support other operators it has the same priority as in expressions. Python users use or very frequently, and may build an impression that it is strongly associated with Boolean short-circuiting. | is used between alternatives in regular expressions and in EBNF grammars (like Python’s own). | not just used for bitwise OR – it’s used for set unions, dict merging ( PEP 584 ) and is being considered as an alternative to typing.Union ( PEP 604 ). | works better as a visual separator, especially between strings. Compare: case \"spam\" or \"eggs\" or \"cheese\" : to: case \"spam\" | \"eggs\" | \"cheese\" :",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Use some other syntax instead of | for OR patterns"
+    },
+    {
+      "id": "pep_622_alternative_21",
+      "type": "Alternative",
+      "name": "Add an else clause",
+      "description": "We decided not to add an else clause for several reasons.\nIt is redundant, since we already have case _: There will forever be confusion about the indentation level of the else: – should it align with the list of cases or with the match keyword? Completionist arguments like “every other statement has one” are false – only those statements have an else clause where it adds new functionality.",
+      "status": "rejected",
+      "source_pep": 622,
+      "source_section": "Add an else clause"
+    },
+    {
+      "id": "pep_622_feature",
+      "type": "Feature",
+      "name": "Structural Pattern Matching",
+      "concepts": [],
+      "source_pep": 622
+    },
+    {
+      "id": "pep_634",
+      "type": "PEP",
+      "number": 634,
+      "title": "PEP 634 – Structural Pattern Matching: Specification"
+    },
+    {
+      "id": "pep_634_feature",
+      "type": "Feature",
+      "name": "Structural Pattern Matching: Specification",
+      "concepts": [
+        "pattern matching",
+        "match statement",
+        "case statement",
+        "pattern"
+      ],
+      "source_pep": 634
+    },
+    {
+      "id": "pep_635",
+      "type": "PEP",
+      "number": 635,
+      "title": "PEP 635 – Structural Pattern Matching: Motivation and Rationale"
+    },
+    {
+      "id": "pep_635_feature",
+      "type": "Feature",
+      "name": "Structural Pattern Matching: Motivation and Rationale",
+      "concepts": [
+        "pattern matching",
+        "match statement",
+        "case statement",
+        "pattern"
+      ],
+      "source_pep": 635
+    },
+    {
+      "id": "pep_636",
+      "type": "PEP",
+      "number": 636,
+      "title": "PEP 636 – Structural Pattern Matching: Tutorial"
+    },
+    {
+      "id": "pep_636_feature",
+      "type": "Feature",
+      "name": "Structural Pattern Matching: Tutorial",
+      "concepts": [
+        "pattern matching",
+        "match statement",
+        "case statement",
+        "pattern"
+      ],
+      "source_pep": 636
+    },
+    {
+      "id": "pep_695",
+      "type": "PEP",
+      "number": 695,
+      "title": "PEP 695 – Type Parameter Syntax"
+    },
+    {
+      "id": "pep_695_alternative_1",
+      "type": "Alternative",
+      "name": "Prefix Clause",
+      "description": "We explored various syntactic options for specifying type parameters that preceded def and class statements. One such variant we considered used a using clause as follows:\nusing S , T class ClassA : ...\nThis option was rejected because the scoping rules for the type parameters were less clear. Also, this syntax did not interact well with class and function decorators, which are common in Python. Only one other popular programming language, C++, uses this approach.\nWe likewise considered prefix forms that looked like decorators (e.g., @using(S, T) ). This idea was rejected because such forms would be confused with regular decorators, and they would not compose well with existing decorators. Furthermore, decorators are logically executed after the statement they are decorating, so it would be confusing for them to introduce symbols (type parameters) that are visible within the “decorated” statement, which is logically executed before the decorator itself.",
+      "status": "rejected",
+      "source_pep": 695,
+      "source_section": "Prefix Clause"
+    },
+    {
+      "id": "pep_695_alternative_2",
+      "type": "Alternative",
+      "name": "Angle Brackets",
+      "description": "Many languages that support generics make use of angle brackets. (Refer to the table at the end of Appendix A for a summary.) We explored the use of angle brackets for type parameter declarations in Python, but we ultimately rejected it for two reasons. First, angle brackets are not considered “paired” by the Python scanner, so end-of-line characters between a < and > token are retained. That means any line breaks within a list of type parameters would require the use of unsightly and cumbersome \\ escape sequences. Second, Python has already established the use of square brackets for explicit specialization of a generic type (e.g., list[int] ). We concluded that it would be inconsistent and confusing to use angle brackets for generic declarations but square brackets for explicit specialization. All other languages that we surveyed were consistent in this regard.",
+      "status": "rejected",
+      "source_pep": 695,
+      "source_section": "Angle Brackets"
+    },
+    {
+      "id": "pep_695_alternative_3",
+      "type": "Alternative",
+      "name": "Bounds Syntax",
+      "description": "We explored various syntactic options for specifying the bounds and constraints for a type variable. We considered, but ultimately rejected, the use of a <: token like in Scala, the use of an extends or with keyword like in various other languages, and the use of a function call syntax similar to today’s typing.TypeVar constructor. The simple colon syntax is consistent with many other programming languages (see Appendix A), and it was heavily preferred by a cross section of Python developers who were surveyed.",
+      "status": "rejected",
+      "source_pep": 695,
+      "source_section": "Bounds Syntax"
+    },
+    {
+      "id": "pep_695_alternative_4",
+      "type": "Alternative",
+      "name": "Explicit Variance",
+      "description": "We considered adding syntax for specifying whether a type parameter is intended to be invariant, covariant, or contravariant. The typing.TypeVar mechanism in Python requires this. A few other languages including Scala and C# also require developers to specify the variance. We rejected this idea because variance can generally be inferred, and most modern programming languages do infer variance based on usage. Variance is an advanced topic that many developers find confusing, so we want to eliminate the need to understand this concept for most Python developers.",
+      "status": "rejected",
+      "source_pep": 695,
+      "source_section": "Explicit Variance"
+    },
+    {
+      "id": "pep_695_alternative_5",
+      "type": "Alternative",
+      "name": "Name Mangling",
+      "description": "When considering implementation options, we considered a “name mangling” approach where each type parameter was given a unique “mangled” name by the compiler. This mangled name would be based on the qualified name of the generic class, function or type alias it was associated with. This approach was rejected because qualified names are not necessarily unique, which means the mangled name would need to be based on some other randomized value. Furthermore, this approach is not compatible with techniques used for evaluating quoted (forward referenced) type annotations.",
+      "status": "rejected",
+      "source_pep": 695,
+      "source_section": "Name Mangling"
+    },
+    {
+      "id": "pep_695_feature",
+      "type": "Feature",
+      "name": "Type Parameter Syntax",
+      "concepts": [
+        "type parameters",
+        "generic",
+        "type variable",
+        "type alias",
+        "typing"
+      ],
+      "source_pep": 695
+    },
+    {
+      "id": "pep_484",
+      "type": "PEP",
+      "number": 484,
+      "title": "PEP 484 – Type Hints"
+    },
+    {
+      "id": "pep_484_alternative_1",
+      "type": "Alternative",
+      "name": "Which brackets for generic type parameters?",
+      "description": "Most people are familiar with the use of angular brackets (e.g. List<int> ) in languages like C++, Java, C# and Swift to express the parameterization of generic types. The problem with these is that they are really hard to parse, especially for a simple-minded parser like Python. In most languages the ambiguities are usually dealt with by only allowing angular brackets in specific syntactic positions, where general expressions aren’t allowed. (And also by using very powerful parsing techniques that can backtrack over an arbitrary section of code.)\nBut in Python, we’d like type expressions to be (syntactically) the same as other expressions, so that we can use e.g. variable assignment to create type aliases. Consider this simple type expression:\nList < int >\nFrom the Python parser’s perspective, the expression begins with the same four tokens (NAME, LESS, NAME, GREATER) as a chained comparison:\na < b > c # I.e., (a < b) and (b > c)\nWe can even make up an example that could be parsed both ways:\na < b > [ c ]\nAssuming we had angular brackets in the language, this could be interpreted as either of the following two:\n( a < b > )[ c ] # I.e., (a<b>).__getitem__(c) a < b > ([ c ]) # I.e., (a < b) and (b > [c])\nIt would surely be possible to come up with a rule to disambiguate such cases, but to most users the rules would feel arbitrary and complex. It would also require us to dramatically change the CPython parser (and every other parser for Python). It should be noted that Python’s current parser is intentionally “dumb” – a simple grammar is easier for users to reason about.\nFor all these reasons, square brackets (e.g. List[int] ) are (and have long been) the preferred syntax for generic type parameters. They can be implemented by defining the __getitem__() method on the metaclass, and no new syntax is required at all. This option works in all recent versions of Python (starting with Python 2.2). Python is not alone in this syntactic choice – generic classes in Scala also use square brackets.",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "Which brackets for generic type parameters?"
+    },
+    {
+      "id": "pep_484_alternative_2",
+      "type": "Alternative",
+      "name": "What about existing uses of annotations?",
+      "description": "One line of argument points out that PEP 3107 explicitly supports the use of arbitrary expressions in function annotations. The new proposal is then considered incompatible with the specification of PEP 3107.\nOur response to this is that, first of all, the current proposal does not introduce any direct incompatibilities, so programs using annotations in Python 3.4 will still work correctly and without prejudice in Python 3.5.\nWe do hope that type hints will eventually become the sole use for annotations, but this will require additional discussion and a deprecation period after the initial roll-out of the typing module with Python 3.5. The current PEP will have provisional status (see PEP 411 ) until Python 3.6 is released. The fastest conceivable scheme would introduce silent deprecation of non-type-hint annotations in 3.6, full deprecation in 3.7, and declare type hints as the only allowed use of annotations in Python 3.8. This should give authors of packages that use annotations plenty of time to devise another approach, even if type hints become an overnight success.\n( UPDATE: As of fall 2017, the timeline for the end of provisional status for this PEP and for the typing.py module has changed, and so has the deprecation schedule for other uses of annotations. For the updated schedule see PEP 563 .)\nAnother possible outcome would be that type hints will eventually become the default meaning for annotations, but that there will always remain an option to disable them. For this purpose the current proposal defines a decorator @no_type_check which disables the default interpretation of annotations as type hints in a given class or function. It also defines a meta-decorator @no_type_check_decorator which can be used to decorate a decorator (!), causing annotations in any function or class decorated with the latter to be ignored by the type checker.\nThere are also # type: ignore comments, and static checkers should support configuration options to disable type checking in selected packages.\nDespite all these options, proposals have been circulated to allow type hints and other forms of annotations to coexist for individual arguments. One proposal suggests that if an annotation for a given argument is a dictionary literal, each key represents a different form of annotation, and the key 'type' would be use for type hints. The problem with this idea and its variants is that the notation becomes very “noisy” and hard to read. Also, in most cases where existing libraries use annotations, there would be little need to combine them with type hints. So the simpler approach of selectively disabling type hints appears sufficient.",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "What about existing uses of annotations?"
+    },
+    {
+      "id": "pep_484_alternative_3",
+      "type": "Alternative",
+      "name": "The problem of forward declarations",
+      "description": "The current proposal is admittedly sub-optimal when type hints must contain forward references. Python requires all names to be defined by the time they are used. Apart from circular imports this is rarely a problem: “use” here means “look up at runtime”, and with most “forward” references there is no problem in ensuring that a name is defined before the function using it is called.\nThe problem with type hints is that annotations (per PEP 3107 , and similar to default values) are evaluated at the time a function is defined, and thus any names used in an annotation must be already defined when the function is being defined. A common scenario is a class definition whose methods need to reference the class itself in their annotations. (More general, it can also occur with mutually recursive classes.) This is natural for container types, for example:\nclass Node : \"\"\"Binary tree node.\"\"\" def __init__ ( self , left : Node , right : Node ): self . left = left self . right = right\nAs written this will not work, because of the peculiarity in Python that class names become defined once the entire body of the class has been executed. Our solution, which isn’t particularly elegant, but gets the job done, is to allow using string literals in annotations. Most of the time you won’t have to use this though – most uses of type hints are expected to reference builtin types or types defined in other modules.\nA counterproposal would change the semantics of type hints so they aren’t evaluated at runtime at all (after all, type checking happens off-line, so why would type hints need to be evaluated at runtime at all). This of course would run afoul of backwards compatibility, since the Python interpreter doesn’t actually know whether a particular annotation is meant to be a type hint or something else.\nA compromise is possible where a __future__ import could enable turning all annotations in a given module into string literals, as follows:\nfrom __future__ import annotations class ImSet : def add ( self , a : ImSet ) -> List [ ImSet ]: ... assert ImSet . add . __annotations__ == { 'a' : 'ImSet' , 'return' : 'List[ImSet]' }\nSuch a __future__ import statement may be proposed in a separate PEP.\n( UPDATE: That __future__ import statement and its consequences are discussed in PEP 563 .)",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "The problem of forward declarations"
+    },
+    {
+      "id": "pep_484_alternative_4",
+      "type": "Alternative",
+      "name": "The double colon",
+      "description": "A few creative souls have tried to invent solutions for this problem. For example, it was proposed to use a double colon ( :: ) for type hints, solving two problems at once: disambiguating between type hints and other annotations, and changing the semantics to preclude runtime evaluation. There are several things wrong with this idea, however.\nIt’s ugly. The single colon in Python has many uses, and all of them look familiar because they resemble the use of the colon in English text. This is a general rule of thumb by which Python abides for most forms of punctuation; the exceptions are typically well known from other programming languages. But this use of :: is unheard of in English, and in other languages (e.g. C++) it is used as a scoping operator, which is a very different beast. In contrast, the single colon for type hints reads naturally – and no wonder, since it was carefully designed for this purpose ( the idea long predates PEP 3107 ). It is also used in the same fashion in other languages from Pascal to Swift. What would you do for return type annotations? It’s actually a feature that type hints are evaluated at runtime. Making type hints available at runtime allows runtime type checkers to be built on top of type hints. It catches mistakes even when the type checker is not run. Since it is a separate program, users may choose not to run it (or even install it), but might still want to use type hints as a concise form of documentation. Broken type hints are no use even for documentation. Because it’s new syntax, using the double colon for type hints would limit them to code that works with Python 3.5 only. By using existing syntax, the current proposal can easily work for older versions of Python 3. (And in fact mypy supports Python 3.2 and newer.) If type hints become successful we may well decide to add new syntax in the future to declare the type for variables, for example var age: int = 42 . If we were to use a double colon for argument type hints, for consistency we’d have to use the same convention for future syntax, perpetuating the ugliness.",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "The double colon"
+    },
+    {
+      "id": "pep_484_alternative_5",
+      "type": "Alternative",
+      "name": "Other forms of new syntax",
+      "description": "A few other forms of alternative syntax have been proposed, e.g. the introduction of a where keyword, and Cobra-inspired requires clauses. But these all share a problem with the double colon: they won’t work for earlier versions of Python 3. The same would apply to a new __future__ import.",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "Other forms of new syntax"
+    },
+    {
+      "id": "pep_484_alternative_6",
+      "type": "Alternative",
+      "name": "Other backwards compatible conventions",
+      "description": "The ideas put forward include:\nA decorator, e.g. @typehints(name=str, returns=str) . This could work, but it’s pretty verbose (an extra line, and the argument names must be repeated), and a far cry in elegance from the PEP 3107 notation. Stub files. We do want stub files, but they are primarily useful for adding type hints to existing code that doesn’t lend itself to adding type hints, e.g. 3rd party packages, code that needs to support both Python 2 and Python 3, and especially extension modules. For most situations, having the annotations in line with the function definitions makes them much more useful. Docstrings. There is an existing convention for docstrings, based on the Sphinx notation ( :type arg1: description ). This is pretty verbose (an extra line per parameter), and not very elegant. We could also make up something new, but the annotation syntax is hard to beat (because it was designed for this very purpose).\nIt’s also been proposed to simply wait another release. But what problem would that solve? It would just be procrastination.",
+      "status": "rejected",
+      "source_pep": 484,
+      "source_section": "Other backwards compatible conventions"
+    },
+    {
+      "id": "pep_484_feature",
+      "type": "Feature",
+      "name": "Type Hints",
+      "concepts": [
+        "type hints",
+        "typing",
+        "type annotations",
+        "type variables"
+      ],
+      "source_pep": 484
+    },
+    {
+      "id": "pep_612",
+      "type": "PEP",
+      "number": 612,
+      "title": "PEP 612 – Parameter Specification Variables"
+    },
+    {
+      "id": "pep_612_alternative_1",
+      "type": "Alternative",
+      "name": "Using List Variadics and Map Variadics",
+      "description": "We considered just trying to make something like this with a callback protocol which was parameterized on a list-type variadic, and a map-type variadic like so:\nR = typing.TypeVar(“R”) Tpositionals = ... Tkeywords = ... class BetterCallable(typing.Protocol[Tpositionals, Tkeywords, R]): def __call__(*args: Tpositionals, **kwargs: Tkeywords) -> R: ...\nHowever, there are some problems with trying to come up with a consistent solution for those type variables for a given callable. This problem comes up with even the simplest of callables:\ndef simple(x: int) -> None: ... simple <: BetterCallable[[int], [], None] simple <: BetterCallable[[], {“x”: int}, None] BetterCallable[[int], [], None] </: BetterCallable[[], {“x”: int}, None]\nAny time where a type can implement a protocol in more than one way that aren’t mutually compatible, we can run into situations where we lose information. If we were to make a decorator using this protocol, we would have to pick one calling convention to prefer.\ndef decorator ( f : BetterCallable [[ Ts ], [ Tmap ], int ], ) -> BetterCallable [[ Ts ], [ Tmap ], str ]: def decorated ( * args : Ts , ** kwargs : Tmap ) -> str : x = f ( * args , ** kwargs ) return int_to_str ( x ) return decorated @decorator def foo ( x : int ) -> int : return x reveal_type ( foo ) # Option A: BetterCallable[[int], {}, str] # Option B: BetterCallable[[], {x: int}, str] foo ( 7 ) # fails under option B foo ( x = 7 ) # fails under option A\nThe core problem here is that, by default, parameters in Python can either be called positionally or as a keyword argument. This means we really have three categories (positional-only, positional-or-keyword, keyword-only) we’re trying to jam into two categories. This is the same problem that we briefly mentioned when discussing .args and .kwargs . Fundamentally, in order to capture two categories when there are some things that can be in either category, we need a higher level primitive ( ParamSpec ) to capture all three, and then split them out afterward.",
+      "status": "rejected",
+      "source_pep": 612,
+      "source_section": "Using List Variadics and Map Variadics"
+    },
+    {
+      "id": "pep_612_alternative_2",
+      "type": "Alternative",
+      "name": "Defining ParametersOf",
+      "description": "Another proposal we considered was defining ParametersOf and ReturnType operators which would operate on a domain of a newly defined Function type. Function would be callable with, and only with ParametersOf[F] . ParametersOf and ReturnType would only operate on type variables with precisely this bound. The combination of these three features could express everything that we can express with ParamSpecs .\nF = TypeVar ( \"F\" , bound = Function ) def no_change ( f : F ) -> F : def inner ( * args : ParametersOf [ F ] . args , ** kwargs : ParametersOf [ F ] . kwargs ) -> ReturnType [ F ]: return f ( * args , ** kwargs ) return inner def wrapping ( f : F ) -> Callable [ ParametersOf [ F ], List [ ReturnType [ F ]]]: def inner ( * args : ParametersOf [ F ] . args , ** kwargs : ParametersOf [ F ] . kwargs ) -> List [ ReturnType [ F ]]: return [ f ( * args , ** kwargs )] return inner def unwrapping ( f : Callable [ ParametersOf [ F ], List [ R ]] ) -> Callable [ ParametersOf [ F ], R ]: def inner ( * args : ParametersOf [ F ] . args , ** kwargs : ParametersOf [ F ] . kwargs ) -> R : return f ( * args , ** kwargs )[ 0 ] return inner\nWe decided to go with ParamSpec s over this approach for several reasons:\nThe footprint of this change would be larger, as we would need two new operators, and a new type, while ParamSpec just introduces a new variable. Python typing has so far has avoided supporting operators, whether user-defined or built-in, in favor of destructuring. Accordingly, ParamSpec based signatures look much more like existing Python. The lack of user-defined operators makes common patterns hard to spell. unwrapping is odd to read because F is not actually referring to any callable. It’s just being used as a container for the parameters we wish to propagate. It would read better if we could define an operator RemoveList[List[X]] = X and then unwrapping could take F and return Callable[ParametersOf[F], RemoveList[ReturnType[F]]] . Without that, we unfortunately get into a situation where we have to use a Function -variable as an improvised ParamSpec , in that we never actually bind the return type.\nIn summary, between these two equivalently powerful syntaxes, ParamSpec fits much more naturally into the status quo.",
+      "status": "rejected",
+      "source_pep": 612,
+      "source_section": "Defining ParametersOf"
+    },
+    {
+      "id": "pep_612_alternative_3",
+      "type": "Alternative",
+      "name": "Concatenating Keyword Parameters",
+      "description": "In principle the idea of concatenation as a means to modify a finite number of positional parameters could be expanded to include keyword parameters.\ndef add_n ( f : Callable [ P , R ]) -> Callable [ Concatenate [( \"n\" , int ), P ], R ]: def inner ( * args : P . args , n : int , ** kwargs : P . kwargs ) -> R : # use n return f ( * args , ** kwargs ) return inner\nHowever, the key distinction is that while prepending positional-only parameters to a valid callable type always yields another valid callable type, the same cannot be said for adding keyword-only parameters. As alluded to above , the issue is name collisions. The parameters Concatenate[(\"n\", int), P] are only valid when P itself does not already have a parameter named n .\ndef innocent_wrapper ( f : Callable [ P , R ]) -> Callable [ P , R ]: def inner ( * args : P . args , ** kwargs : P . kwargs ) -> R : added = add_n ( f ) return added ( * args , n = 1 , ** kwargs ) return inner @innocent_wrapper def problem ( n : int ) -> None : pass\nCalling problem(2) works fine, but calling problem(n=2) leads to a TypeError: problem() got multiple values for argument 'n' from the call to added inside of innocent_wrapper .\nThis kind of situation could be avoided, and this kind of decorator could be typed if we could reify the constraint that a set of parameters not contain a certain name, with something like:\nP_without_n = ParamSpec ( \"P_without_n\" , banned_names = [ \"n\" ]) def add_n ( f : Callable [ P_without_n , R ] ) -> Callable [ Concatenate [( \"n\" , int ), P_without_n ], R ]: ...\nThe call to add_n inside of innocent_wrapper could then be rejected since the callable was not guaranteed not to already have a parameter named n .\nHowever, enforcing these constraints would require enough additional implementation work that we judged this extension to be out of scope of this PEP. Fortunately the design of ParamSpec s are such that we can return to this idea later if there is sufficient demand.",
+      "status": "rejected",
+      "source_pep": 612,
+      "source_section": "Concatenating Keyword Parameters"
+    },
+    {
+      "id": "pep_612_alternative_4",
+      "type": "Alternative",
+      "name": "Naming this a ParameterSpecification",
+      "description": "We decided that ParameterSpecification was a little too long-winded for use here, and that this style of abbreviated name made it look more like TypeVar.",
+      "status": "rejected",
+      "source_pep": 612,
+      "source_section": "Naming this a ParameterSpecification"
+    },
+    {
+      "id": "pep_612_alternative_5",
+      "type": "Alternative",
+      "name": "Naming this an ArgSpec",
+      "description": "We think that calling this a ParamSpec is more correct than referring to it as an ArgSpec, since callables have parameters, which are distinct from the arguments which are passed to them in a given call site. A given binding for a ParamSpec is a set of function parameters, not a call-site’s arguments.",
+      "status": "rejected",
+      "source_pep": 612,
+      "source_section": "Naming this an ArgSpec"
+    },
+    {
+      "id": "pep_612_feature",
+      "type": "Feature",
+      "name": "Parameter Specification Variables",
+      "concepts": [
+        "parameter specification",
+        "typing",
+        "generic"
+      ],
+      "source_pep": 612
+    },
+    {
+      "id": "pep_646",
+      "type": "PEP",
+      "number": 646,
+      "title": "PEP 646 – Variadic Generics"
+    },
+    {
+      "id": "pep_646_alternative_1",
+      "type": "Alternative",
+      "name": "Shape Arithmetic",
+      "description": "Considering the use case of array shapes in particular, note that as of this PEP, it is not yet possible to describe arithmetic transformations of array dimensions - for example, def repeat_each_element(x: Array[N]) -> Array[2*N] . We consider this out-of-scope for the current PEP, but plan to propose additional mechanisms that will enable this in a future PEP.",
+      "status": "rejected",
+      "source_pep": 646,
+      "source_section": "Shape Arithmetic"
+    },
+    {
+      "id": "pep_646_alternative_2",
+      "type": "Alternative",
+      "name": "Supporting Variadicity Through Aliases",
+      "description": "As noted in the introduction, it is possible to avoid variadic generics by simply defining aliases for each possible number of type parameters:\nclass Array1 ( Generic [ Axis1 ]): ... class Array2 ( Generic [ Axis1 , Axis2 ]): ...\nHowever, this seems somewhat clumsy - it requires users to unnecessarily pepper their code with 1s, 2s, and so on for each rank necessary.",
+      "status": "rejected",
+      "source_pep": 646,
+      "source_section": "Supporting Variadicity Through Aliases"
+    },
+    {
+      "id": "pep_646_alternative_3",
+      "type": "Alternative",
+      "name": "Construction of TypeVarTuple",
+      "description": "TypeVarTuple began as ListVariadic , based on its naming in an early implementation in Pyre.\nWe then changed this to TypeVar(list=True) , on the basis that a) it better emphasises the similarity to TypeVar , and b) the meaning of ‘list’ is more easily understood than the jargon of ‘variadic’.\nOnce we’d decided that a variadic type variable should behave like a Tuple , we also considered TypeVar(bound=Tuple) , which is similarly intuitive and accomplishes most what we wanted without requiring any new arguments to TypeVar . However, we realised this may constrain us in the future, if for example we want type bounds or variance to function slightly differently for variadic type variables than what the semantics of TypeVar might otherwise imply. Also, we may later wish to support arguments that should not be supported by regular type variables (such as arbitrary_len [10] ).\nWe therefore settled on TypeVarTuple .",
+      "status": "rejected",
+      "source_pep": 646,
+      "source_section": "Construction of TypeVarTuple"
+    },
+    {
+      "id": "pep_646_alternative_4",
+      "type": "Alternative",
+      "name": "Unspecified Type Parameters: Tuple vs TypeVarTuple",
+      "description": "In order to support gradual typing, this PEP states that both of the following examples should type-check correctly:\ndef takes_any_array ( x : Array ): ... x : Array [ Height , Width ] takes_any_array ( x ) def takes_specific_array ( y : Array [ Height , Width ]): ... y : Array takes_specific_array ( y )\nNote that this is in contrast to the behaviour of the only currently-existing variadic type in Python, Tuple :\ndef takes_any_tuple ( x : Tuple ): ... x : Tuple [ int , str ] takes_any_tuple ( x ) # Valid def takes_specific_tuple ( y : Tuple [ int , str ]): ... y : Tuple takes_specific_tuple ( y ) # Error\nThe rules for Tuple were deliberately chosen such that the latter case is an error: it was thought to be more likely that the programmer has made a mistake than that the function expects a specific kind of Tuple but the specific kind of Tuple passed is unknown to the type checker. Additionally, Tuple is something of a special case, in that it is used to represent immutable sequences. That is, if an object’s type is inferred to be an unparameterised Tuple , it is not necessarily because of incomplete typing.\nIn contrast, if an object’s type is inferred to be an unparameterised Array , it is much more likely that the user has simply not yet fully annotated their code, or that the signature of a shape-manipulating library function cannot yet be expressed using the typing system and therefore returning a plain Array is the only option. We rarely deal with arrays of truly arbitrary shape; in certain cases, some parts of the shape will be arbitrary - for example, when dealing with sequences, the first two parts of the shape are often ‘batch’ and ‘time’ - but we plan to support these cases explicitly in a future PEP with a syntax such as Array[Batch, Time, ...] .\nWe therefore made the decision to have variadic generics other than Tuple behave differently, in order to give the user more flexibility in how much of their code they wish to annotate, and to enable compatibility between old unannotated code and new versions of libraries which do use these type annotations.",
+      "status": "rejected",
+      "source_pep": 646,
+      "source_section": "Unspecified Type Parameters: Tuple vs TypeVarTuple"
+    },
+    {
+      "id": "pep_646_feature",
+      "type": "Feature",
+      "name": "Variadic Generics",
+      "concepts": [
+        "variadic generics",
+        "type variables",
+        "typing",
+        "generic"
+      ],
+      "source_pep": 646
+    }
+  ],
+  "relationships": [
+    {
+      "source": "pep_572",
+      "type": "ILLUSTRATES",
+      "target": "pep_572_example_1"
+    },
+    {
+      "source": "pep_572",
+      "type": "ILLUSTRATES",
+      "target": "pep_572_example_2"
+    },
+    {
+      "source": "pep_572",
+      "type": "ILLUSTRATES",
+      "target": "pep_572_example_3"
+    },
+    {
+      "source": "pep_572",
+      "type": "ILLUSTRATES",
+      "target": "pep_572_example_4"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_1"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_2"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_3"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_4"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_5"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_6"
+    },
+    {
+      "source": "pep_572",
+      "type": "CONSIDERS",
+      "target": "pep_572_alternative_7"
+    },
+    {
+      "source": "pep_572",
+      "type": "RAISES",
+      "target": "pep_572_objection_1"
+    },
+    {
+      "source": "pep_572",
+      "type": "RAISES",
+      "target": "pep_572_objection_2"
+    },
+    {
+      "source": "pep_572",
+      "type": "RAISES",
+      "target": "pep_572_objection_3"
+    },
+    {
+      "source": "pep_572",
+      "type": "ILLUSTRATES",
+      "target": "pep_572_example_5"
+    },
+    {
+      "source": "pep_572",
+      "type": "PROPOSES",
+      "target": "pep_572_feature"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_1"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_2"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_3"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_4"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_5"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_6"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_7"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_8"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_9"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_10"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_11"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_12"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_13"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_14"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_15"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_16"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_17"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_18"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_19"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_20"
+    },
+    {
+      "source": "pep_622",
+      "type": "CONSIDERS",
+      "target": "pep_622_alternative_21"
+    },
+    {
+      "source": "pep_622",
+      "type": "PROPOSES",
+      "target": "pep_622_feature"
+    },
+    {
+      "source": "pep_634",
+      "type": "PROPOSES",
+      "target": "pep_634_feature"
+    },
+    {
+      "source": "pep_635",
+      "type": "PROPOSES",
+      "target": "pep_635_feature"
+    },
+    {
+      "source": "pep_636",
+      "type": "PROPOSES",
+      "target": "pep_636_feature"
+    },
+    {
+      "source": "pep_695",
+      "type": "CONSIDERS",
+      "target": "pep_695_alternative_1"
+    },
+    {
+      "source": "pep_695",
+      "type": "CONSIDERS",
+      "target": "pep_695_alternative_2"
+    },
+    {
+      "source": "pep_695",
+      "type": "CONSIDERS",
+      "target": "pep_695_alternative_3"
+    },
+    {
+      "source": "pep_695",
+      "type": "CONSIDERS",
+      "target": "pep_695_alternative_4"
+    },
+    {
+      "source": "pep_695",
+      "type": "CONSIDERS",
+      "target": "pep_695_alternative_5"
+    },
+    {
+      "source": "pep_695",
+      "type": "PROPOSES",
+      "target": "pep_695_feature"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_1"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_2"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_3"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_4"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_5"
+    },
+    {
+      "source": "pep_484",
+      "type": "CONSIDERS",
+      "target": "pep_484_alternative_6"
+    },
+    {
+      "source": "pep_484",
+      "type": "PROPOSES",
+      "target": "pep_484_feature"
+    },
+    {
+      "source": "pep_612",
+      "type": "CONSIDERS",
+      "target": "pep_612_alternative_1"
+    },
+    {
+      "source": "pep_612",
+      "type": "CONSIDERS",
+      "target": "pep_612_alternative_2"
+    },
+    {
+      "source": "pep_612",
+      "type": "CONSIDERS",
+      "target": "pep_612_alternative_3"
+    },
+    {
+      "source": "pep_612",
+      "type": "CONSIDERS",
+      "target": "pep_612_alternative_4"
+    },
+    {
+      "source": "pep_612",
+      "type": "CONSIDERS",
+      "target": "pep_612_alternative_5"
+    },
+    {
+      "source": "pep_612",
+      "type": "PROPOSES",
+      "target": "pep_612_feature"
+    },
+    {
+      "source": "pep_646",
+      "type": "CONSIDERS",
+      "target": "pep_646_alternative_1"
+    },
+    {
+      "source": "pep_646",
+      "type": "CONSIDERS",
+      "target": "pep_646_alternative_2"
+    },
+    {
+      "source": "pep_646",
+      "type": "CONSIDERS",
+      "target": "pep_646_alternative_3"
+    },
+    {
+      "source": "pep_646",
+      "type": "CONSIDERS",
+      "target": "pep_646_alternative_4"
+    },
+    {
+      "source": "pep_646",
+      "type": "PROPOSES",
+      "target": "pep_646_feature"
+    },
+    {
+      "source": "pep_622",
+      "type": "SPLIT_INTO",
+      "target": "pep_634"
+    },
+    {
+      "source": "pep_622",
+      "type": "SPLIT_INTO",
+      "target": "pep_635"
+    },
+    {
+      "source": "pep_622",
+      "type": "SPLIT_INTO",
+      "target": "pep_636"
+    }
+  ]
+}
